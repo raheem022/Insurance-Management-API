@@ -402,7 +402,7 @@ public class AdminController {
             // Query main database for assignment statistics
             String assignedCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND processing_status IN ('ASSIGNED', 'IN_PROGRESS', 'COMPLETED')";
             String completedCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND processing_status = 'COMPLETED'";
-            String todayCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND (CAST(last_assigned_at AS DATE) = CAST(GETDATE() AS DATE) OR CAST(updated_at AS DATE) = CAST(GETDATE() AS DATE))";
+            String todayCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND (CAST(last_status_updated AS DATE) = CAST(GETDATE() AS DATE) OR CAST(updated_at AS DATE) = CAST(GETDATE() AS DATE))";
             
             Long assignedCount = jdbcTemplate.queryForObject(assignedCountQuery, Long.class, user.getId().toString());
             Long completedCount = jdbcTemplate.queryForObject(completedCountQuery, Long.class, user.getId().toString());
