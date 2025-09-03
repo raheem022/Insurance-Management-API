@@ -37,8 +37,6 @@ spring:
     
 server:
   port: ${PORT:8082}
-  servlet:
-    context-path: /api
   error:
     include-message: always
     include-binding-errors: always
