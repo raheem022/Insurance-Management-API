@@ -400,22 +400,29 @@ public class AdminController {
         // Add customer assignment statistics
         try {
             // Query main database for assignment statistics
-            String assignedCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ?";
+            String assignedCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND processing_status IN ('ASSIGNED', 'IN_PROGRESS', 'COMPLETED')";
             String completedCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND processing_status = 'COMPLETED'";
-            String todayCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND CAST(updated_at AS DATE) = CAST(GETDATE() AS DATE)";
+            String todayCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND (CAST(last_assigned_at AS DATE) = CAST(GETDATE() AS DATE) OR CAST(updated_at AS DATE) = CAST(GETDATE() AS DATE))";
             
             Long assignedCount = jdbcTemplate.queryForObject(assignedCountQuery, Long.class, user.getId().toString());
             Long completedCount = jdbcTemplate.queryForObject(completedCountQuery, Long.class, user.getId().toString());
             Long todayCount = jdbcTemplate.queryForObject(todayCountQuery, Long.class, user.getId().toString());
             
+            // Map to frontend field names
             userMap.put("assigned_count", assignedCount != null ? assignedCount : 0);
+            userMap.put("assigned", assignedCount != null ? assignedCount : 0); // For frontend compatibility
             userMap.put("completed_count", completedCount != null ? completedCount : 0);
+            userMap.put("completed", completedCount != null ? completedCount : 0); // For frontend compatibility  
             userMap.put("updated_today", todayCount != null ? todayCount : 0);
+            userMap.put("today", todayCount != null ? todayCount : 0); // For frontend compatibility
         } catch (Exception e) {
             log.warn("Failed to fetch assignment statistics for user {}: {}", user.getId(), e.getMessage());
             userMap.put("assigned_count", 0);
+            userMap.put("assigned", 0);
             userMap.put("completed_count", 0);
+            userMap.put("completed", 0);
             userMap.put("updated_today", 0);
+            userMap.put("today", 0);
         }
         
         return userMap;
