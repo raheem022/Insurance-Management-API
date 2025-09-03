@@ -26,7 +26,7 @@ import java.util.Optional;
  * Provides user management endpoints matching the Node.js admin API
  */
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)

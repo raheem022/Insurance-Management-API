@@ -17,7 +17,7 @@ import java.util.Map;
  * Provides dashboard metrics endpoints matching the Node.js admin API
  */
 @RestController
-@RequestMapping("/admin/metrics")
+@RequestMapping("/api/admin/metrics")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)

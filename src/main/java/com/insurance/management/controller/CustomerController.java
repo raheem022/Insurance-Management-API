@@ -21,7 +21,7 @@ import java.util.Map;
  * Provides customer management endpoints for admin interface
  */
 @RestController
-@RequestMapping("/customers")
+@RequestMapping("/api/customers")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)
