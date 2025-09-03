@@ -48,7 +48,7 @@ logging:
     
 app:
   cors:
-    allowed-origins: ${CORS_ORIGINS:https://your-frontend-app.azurestaticapps.net,https://localhost:5173}
+    allowed-origins: ${CORS_ORIGINS:https://datasync-avbbfndeerd0dadv.centralindia-01.azurewebsites.net,https://localhost:5173,*}
     allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
     allowed-headers: "*"
     allow-credentials: true
