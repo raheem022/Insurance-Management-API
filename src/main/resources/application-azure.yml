@@ -1,0 +1,56 @@
+spring:
+  config:
+    activate:
+      on-profile: azure
+  
+  # Azure App Service will set this
+  datasource:
+    url: ${DB_URL:jdbc:sqlserver://datasync-sql-server-2025.database.windows.net:1433;database=DataSync;encrypt=true;trustServerCertificate=false;loginTimeout=30;}
+    username: ${DB_USER:datasyncadmin@datasync-sql-server-2025}
+    password: ${DB_PASSWORD:Raheem@9786}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Never change schema in production
+    show-sql: false
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
+
+server:
+  port: ${PORT:8080}  # Azure App Service uses 8080 by default
+  servlet:
+    context-path: /api
+    
+# Azure-specific configurations
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never  # Security in production
+
+logging:
+  level:
+    com.insurance.management: INFO
+    org.springframework.security: WARN
+    org.hibernate: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:https://your-frontend-app.azurestaticapps.net,https://localhost:5173}
+    allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true

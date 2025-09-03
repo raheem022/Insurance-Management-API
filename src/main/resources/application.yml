@@ -1,0 +1,128 @@
+spring:
+  application:
+    name: insurance-management-api
+  
+  datasource:
+    url: ${DB_URL:jdbc:sqlserver://datasync-sql-server-2025.database.windows.net:1433;database=DataSync;encrypt=true;trustServerCertificate=false;loginTimeout=30;}
+    username: ${DB_USER:datasyncadmin@datasync-sql-server-2025}
+    password: ${DB_PASSWORD:Raheem@9786}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 5
+      idle-timeout: 30000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+    
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
+        format_sql: true
+        show_sql: ${SHOW_SQL:false}
+    show-sql: ${SHOW_SQL:false}
+    
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: NON_NULL
+    serialization:
+      write-dates-as-timestamps: false
+      
+  security:
+    require-ssl: false
+    
+server:
+  port: ${PORT:8082}
+  servlet:
+    context-path: /api
+  error:
+    include-message: always
+    include-binding-errors: always
+    
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      
+logging:
+  level:
+    com.insurance.management: ${LOG_LEVEL:INFO}
+    org.springframework.security: ${SECURITY_LOG_LEVEL:INFO}
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:WARN}
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    
+app:
+  jwt:
+    secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+    expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+    mobile-expiration: ${JWT_MOBILE_EXPIRATION:604800000} # 7 days for mobile
+  
+  cors:
+    allowed-origins: ${CORS_ORIGINS:*}
+    allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+  
+  mobile:
+    api:
+      version: v1
+      base-path: /mobile
+      rate-limit:
+        requests-per-minute: 60
+        
+  security:
+    password:
+      min-length: 6
+      require-uppercase: false
+      require-lowercase: false 
+      require-numbers: false
+      require-special-chars: false
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:sqlserver://datasync-sql-server-2025.database.windows.net:1433;database=DataSync;encrypt=true;trustServerCertificate=false;loginTimeout=30
+    username: datasyncadmin@datasync-sql-server-2025
+    password: Raheem@9786
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+
+logging:
+  level:
+    com.insurance.management: DEBUG
+    org.springframework.security: DEBUG
+    
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    
+logging:
+  level:
+    com.insurance.management: INFO
+    org.springframework.security: WARN
