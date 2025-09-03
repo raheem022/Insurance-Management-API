@@ -27,8 +27,6 @@ spring:
 
 server:
   port: ${PORT:8080}  # Azure App Service uses 8080 by default
-  servlet:
-    context-path: /api
     
 # Azure-specific configurations
 management:
