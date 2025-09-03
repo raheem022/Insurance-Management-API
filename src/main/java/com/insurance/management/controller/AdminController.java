@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +34,7 @@ import java.util.Optional;
 public class AdminController {
     
     private final UserService userService;
+    private final JdbcTemplate jdbcTemplate;
     
     /**
      * GET /api/admin/users
@@ -395,10 +397,26 @@ public class AdminController {
         userMap.put("updated_at", user.getUpdatedAt());
         userMap.put("last_login", user.getLastLoginAt());
         
-        // TODO: Add customer assignment statistics
-        userMap.put("assigned_count", 0);
-        userMap.put("completed_count", 0);
-        userMap.put("updated_today", 0);
+        // Add customer assignment statistics
+        try {
+            // Query main database for assignment statistics
+            String assignedCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ?";
+            String completedCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND processing_status = 'COMPLETED'";
+            String todayCountQuery = "SELECT COUNT(*) FROM customers WHERE assigned_to = ? AND CAST(updated_at AS DATE) = CAST(GETDATE() AS DATE)";
+            
+            Long assignedCount = jdbcTemplate.queryForObject(assignedCountQuery, Long.class, user.getId().toString());
+            Long completedCount = jdbcTemplate.queryForObject(completedCountQuery, Long.class, user.getId().toString());
+            Long todayCount = jdbcTemplate.queryForObject(todayCountQuery, Long.class, user.getId().toString());
+            
+            userMap.put("assigned_count", assignedCount != null ? assignedCount : 0);
+            userMap.put("completed_count", completedCount != null ? completedCount : 0);
+            userMap.put("updated_today", todayCount != null ? todayCount : 0);
+        } catch (Exception e) {
+            log.warn("Failed to fetch assignment statistics for user {}: {}", user.getId(), e.getMessage());
+            userMap.put("assigned_count", 0);
+            userMap.put("completed_count", 0);
+            userMap.put("updated_today", 0);
+        }
         
         return userMap;
     }
