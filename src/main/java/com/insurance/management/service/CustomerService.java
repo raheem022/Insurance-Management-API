@@ -372,9 +372,13 @@ public class CustomerService {
         
         // Calculate time-based counts using India Standard Time (IST)
         java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
-        LocalDateTime today = LocalDateTime.now(istZone).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime currentIstTime = LocalDateTime.now(istZone);
+        LocalDateTime today = currentIstTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
         LocalDateTime weekStart = today.minusDays(7);
         LocalDateTime monthStart = today.minusDays(30);
+        
+        log.info("🕰️ Timezone Debug - Current IST: {}, Today start: {}, Week start: {}", 
+                currentIstTime, today, weekStart);
         
         summary.setTodayCount((int) customerRepository.countCustomersUpdatedByUserSince(userId, today));
         summary.setWeekCount((int) customerRepository.countCustomersUpdatedByUserSince(userId, weekStart));
