@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * Based on the existing Node.js mobile API endpoints
  */
 @RestController
-@RequestMapping("/mobile")
+@RequestMapping("/api/mobile")
 @RequiredArgsConstructor
 @Slf4j
 @Validated
