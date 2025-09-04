@@ -380,8 +380,14 @@ public class CustomerService {
         summary.setMonthCount((int) customerRepository.countCustomersUpdatedByUserSince(userId, monthStart));
         
         // Get total assigned and completed counts
-        summary.setTotalAssigned((int) customerRepository.countByAssignedTo(userId));
-        summary.setCompletedCount((int) customerRepository.countClosedCustomersForUser(userId));
+        // Total assigned = currently assigned + previously completed
+        int currentlyAssigned = (int) customerRepository.countByAssignedTo(userId);
+        int completedCount = (int) customerRepository.countClosedCustomersForUser(userId);
+        int totalEverAssigned = currentlyAssigned + completedCount;
+        
+        summary.setTotalAssigned(totalEverAssigned);
+        summary.setCompletedCount(completedCount);
+        
         
         // Calculate completion rate
         double completionRate = summary.getTotalAssigned() > 0 ? 
@@ -394,50 +400,32 @@ public class CustomerService {
         List<Object[]> statusBreakdownData = getStatusBreakdownForUser(userId);
         CustomerDTO.AnalyticsData.StatusBreakdown breakdown = new CustomerDTO.AnalyticsData.StatusBreakdown();
         
-        log.info("📊 Status breakdown query returned {} rows for user {}", statusBreakdownData.size(), userId);
-        
         // Process status breakdown data
         for (Object[] row : statusBreakdownData) {
             String status = (String) row[0];
             Boolean closed = (Boolean) row[1];
             Long count = ((Number) row[2]).longValue();
             
-            log.info("📈 Status breakdown row: status='{}', closed={}, count={}", status, closed, count);
-            
             if (status != null) {
                 switch (status.toLowerCase()) {
                     case "active":
                         breakdown.setActive(count.intValue());
-                        log.info("✅ Set active count to: {}", count.intValue());
                         break;
                     case "renewed":
                         breakdown.setRenewed(count.intValue());
-                        log.info("✅ Set renewed count to: {}", count.intValue());
                         break;
                     case "not_interested":
                         breakdown.setNotInterested(count.intValue());
-                        log.info("✅ Set not_interested count to: {}", count.intValue());
                         break;
                     case "not_reachable":
                         breakdown.setNotReachable(count.intValue());
-                        log.info("✅ Set not_reachable count to: {}", count.intValue());
                         break;
                     case "follow_up":
                         breakdown.setFollowUp(count.intValue());
-                        log.info("✅ Set follow_up count to: {}", count.intValue());
-                        break;
-                    default:
-                        log.warn("⚠️ Unrecognized status in breakdown: '{}'", status);
                         break;
                 }
-            } else {
-                log.warn("⚠️ Null status in breakdown row, count: {}", count);
             }
         }
-        
-        log.info("📊 Final status breakdown - Active: {}, Renewed: {}, NotInterested: {}, NotReachable: {}, FollowUp: {}", 
-                breakdown.getActive(), breakdown.getRenewed(), breakdown.getNotInterested(), 
-                breakdown.getNotReachable(), breakdown.getFollowUp());
         
         analyticsData.setStatusBreakdown(breakdown);
         
@@ -454,8 +442,6 @@ public class CustomerService {
         
         analyticsData.setDailyActivity(dailyActivity);
         
-        log.info("📊 Analytics data prepared for user: {} - Today: {}, Week: {}, Month: {}, Completion: {}%", 
-                userId, summary.getTodayCount(), summary.getWeekCount(), summary.getMonthCount(), completionRate);
         
         return analyticsData;
     }
