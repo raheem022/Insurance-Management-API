@@ -432,6 +432,7 @@ public class MobileApiController {
         response.setLastContactDate(null); // lastContactDate field removed from database
         response.setCreatedAt(customer.getCreatedAt());
         response.setUpdatedAt(customer.getUpdatedAt());
+        response.setStatusUpdatedBy(customer.getStatusUpdatedBy());
         
         return response;
     }

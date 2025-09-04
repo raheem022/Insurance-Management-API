@@ -89,6 +89,9 @@ public class CustomerDTO {
         @JsonProperty("assigned_at")
         private LocalDateTime assignedAt;
         
+        @JsonProperty("status_updated_by")
+        private Long statusUpdatedBy;
+        
         private String notes;
         
         @JsonProperty("last_contact_date")
