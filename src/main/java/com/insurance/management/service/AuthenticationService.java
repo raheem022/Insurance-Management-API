@@ -29,10 +29,8 @@ public class AuthenticationService {
     private final UserService userService;
     private final MobileTokenUtil mobileTokenUtil;
     
-    // Valid states for mobile authentication
-    private static final List<String> VALID_STATES = Arrays.asList(
-        "Karnataka", "TamilNadu", "AndhraPradesh", "Andhra Pradesh"
-    );
+    // Dynamic state validation - states should be loaded from configuration or database
+    // No hardcoded state list
     
     /**
      * Authenticate user for web/admin login
@@ -82,72 +80,22 @@ public class AuthenticationService {
     }
     
     /**
-     * Authenticate mobile user with state-specific logic
-     * Matches POST /api/auth/mobile-login from Node.js
+     * Authenticate mobile user with automatic state discovery when state not provided
+     * Matches POST /api/auth/mobile-login from Node.js with enhanced discovery
      */
     public LoginResponse authenticateMobileUser(LoginRequest request) {
         log.info("📱 Mobile authentication attempt - Username: {}, State: {}", 
             request.getUsername(), request.getState());
         
         try {
-            // Validate required fields for mobile login
+            // Check if state discovery is needed (state not provided or empty)
             if (request.getState() == null || request.getState().trim().isEmpty()) {
-                return LoginResponse.builder()
-                    .success(false)
-                    .error("Username, PIN, and state are required for mobile login")
-                    .build();
+                log.info("🔍 No state provided, starting automatic state discovery for: {}", request.getUsername());
+                return authenticateMobileUserWithDiscovery(request);
             }
             
-            // Validate state
-            if (!isValidState(request.getState())) {
-                return LoginResponse.builder()
-                    .success(false)
-                    .error("Invalid state or state database not available: " + request.getState())
-                    .build();
-            }
-            
-            // TODO: Implement state-specific database authentication
-            // For now, authenticate against main database and validate state
-            Optional<User> userOpt = userService.authenticateUser(request.getUsername(), request.getPin());
-            
-            if (userOpt.isEmpty()) {
-                log.warn("❌ Mobile authentication failed for username: {} in state: {}", 
-                    request.getUsername(), request.getState());
-                return LoginResponse.builder()
-                    .success(false)
-                    .error("Invalid credentials or account not found in this state")
-                    .build();
-            }
-            
-            User user = userOpt.get();
-            
-            // Validate user belongs to the requested state
-            if (user.getLocationState() == null || !user.getLocationState().equals(request.getState())) {
-                log.warn("❌ State mismatch - User state: {}, Requested state: {}", 
-                    user.getLocationState(), request.getState());
-                return LoginResponse.builder()
-                    .success(false)
-                    .error("Invalid credentials or account not found in this state")
-                    .build();
-            }
-            
-            // Update last login
-            userService.updateLastLogin(user, "mobile");
-            
-            // Generate mobile session token (matching Node.js format)
-            String token = generateMobileToken(user, request.getState());
-            
-            log.info("✅ Mobile authentication successful for: {} ({}) in state: {}", 
-                user.getUsername(), user.getUserRole(), request.getState());
-            
-            return LoginResponse.builder()
-                .success(true)
-                .data(LoginResponse.LoginData.builder()
-                    .user(buildUserInfo(user))
-                    .token(token)
-                    .authenticatedFrom(getStateDatabaseName(request.getState()))
-                    .build())
-                .build();
+            // State provided - use existing logic
+            return authenticateMobileUserWithState(request);
                 
         } catch (Exception e) {
             log.error("❌ Mobile authentication error for username: {} in state: {}", 
@@ -157,6 +105,109 @@ public class AuthenticationService {
                 .error("Mobile login failed")
                 .build();
         }
+    }
+    
+    /**
+     * Authenticate mobile user with automatic state discovery
+     */
+    private LoginResponse authenticateMobileUserWithDiscovery(LoginRequest request) {
+        log.info("🔍 Starting mobile state discovery for username: {}", request.getUsername());
+        
+        // First authenticate the user to get their profile
+        Optional<User> userOpt = userService.authenticateUser(request.getUsername(), request.getPin());
+        
+        if (userOpt.isEmpty()) {
+            log.warn("❌ Mobile authentication failed during discovery for username: {}", request.getUsername());
+            return LoginResponse.builder()
+                .success(false)
+                .error("Invalid credentials")
+                .build();
+        }
+        
+        User user = userOpt.get();
+        String userState = user.getLocationState();
+        
+        // If user has no state, use default
+        if (userState == null || userState.trim().isEmpty()) {
+            log.warn("⚠️ User {} has no state information, using default: Karnataka", request.getUsername());
+            userState = "Karnataka";
+        }
+        
+        // Convert user's database state to backend state format if needed
+        String backendState = convertToBackendStateFormat(userState);
+        
+        log.info("✅ State discovered for {}: {} -> {}", request.getUsername(), userState, backendState);
+        
+        // Update last login
+        userService.updateLastLogin(user, "mobile");
+        
+        // Generate mobile session token with discovered state
+        String token = generateMobileToken(user, backendState);
+        
+        log.info("✅ Mobile discovery authentication successful for: {} ({}) in discovered state: {}", 
+            user.getUsername(), user.getUserRole(), backendState);
+        
+        return LoginResponse.builder()
+            .success(true)
+            .data(LoginResponse.LoginData.builder()
+                .user(buildUserInfo(user))
+                .token(token)
+                .authenticatedFrom(getStateDatabaseName(backendState))
+                .build())
+            .build();
+    }
+    
+    /**
+     * Authenticate mobile user with specific state (original logic)
+     */
+    private LoginResponse authenticateMobileUserWithState(LoginRequest request) {
+        // Skip hardcoded state validation - let authentication process handle it
+        
+        // Authenticate user
+        Optional<User> userOpt = userService.authenticateUser(request.getUsername(), request.getPin());
+        
+        if (userOpt.isEmpty()) {
+            log.warn("❌ Mobile authentication failed for username: {} in state: {}", 
+                request.getUsername(), request.getState());
+            return LoginResponse.builder()
+                .success(false)
+                .error("Invalid credentials or account not found in this state")
+                .build();
+        }
+        
+        User user = userOpt.get();
+        
+        // Convert both states to backend format for comparison
+        String userBackendState = convertToBackendStateFormat(user.getLocationState());
+        String requestedBackendState = convertToBackendStateFormat(request.getState());
+        
+        // Validate user belongs to the requested state (flexible comparison)
+        if (!userBackendState.equals(requestedBackendState)) {
+            log.warn("❌ State mismatch - User state: {} ({}), Requested state: {} ({})", 
+                user.getLocationState(), userBackendState, request.getState(), requestedBackendState);
+            return LoginResponse.builder()
+                .success(false)
+                .error("Invalid credentials or account not found in this state")
+                .build();
+        }
+        
+        // Update last login
+        userService.updateLastLogin(user, "mobile");
+        
+        // Generate mobile session token
+        String token = generateMobileToken(user, requestedBackendState);
+        
+        log.info("✅ Mobile authentication successful for: {} ({}) in state: {}", 
+            user.getUsername(), user.getUserRole(), request.getState());
+        
+        return LoginResponse.builder()
+            .success(true)
+            .data(LoginResponse.LoginData.builder()
+                .user(buildUserInfo(user))
+                .token(token)
+                .authenticatedFrom(getStateDatabaseName(request.getState()))
+                .build())
+            .build();
     }
     
     /**
@@ -242,8 +293,42 @@ public class AuthenticationService {
             .build();
     }
     
+    /**
+     * Dynamic state validation - can be enhanced to check actual available databases
+     */
     private boolean isValidState(String state) {
-        return VALID_STATES.contains(state);
+        // For now, accept any non-empty state - actual validation happens during authentication
+        return state != null && !state.trim().isEmpty();
+    }
+    
+    /**
+     * Convert state name to backend API format (removes spaces, normalizes case)
+     * Dynamic conversion based on common patterns
+     */
+    private String convertToBackendStateFormat(String state) {
+        if (state == null || state.trim().isEmpty()) {
+            // Try to find user's state or use a reasonable default
+            return "Karnataka"; // This could be made configurable
+        }
+        
+        String normalized = state.trim();
+        
+        // Handle spaces by removing them and capitalizing properly
+        if (normalized.contains(" ")) {
+            // Convert "Andhra Pradesh" -> "AndhraPradesh", "Tamil Nadu" -> "TamilNadu"
+            String[] parts = normalized.split("\\s+");
+            StringBuilder result = new StringBuilder();
+            for (String part : parts) {
+                if (!part.isEmpty()) {
+                    result.append(part.substring(0, 1).toUpperCase())
+                          .append(part.substring(1).toLowerCase());
+                }
+            }
+            return result.toString();
+        }
+        
+        // Handle already formatted states - just normalize case
+        return normalized.substring(0, 1).toUpperCase() + normalized.substring(1).toLowerCase();
     }
     
     private String getStateDatabaseName(String state) {

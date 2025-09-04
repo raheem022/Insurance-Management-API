@@ -154,7 +154,7 @@ public class AuthController {
     
     /**
      * GET /api/auth/states
-     * Get available states for mobile login
+     * Get available states for mobile login - dynamically discovered
      */
     @GetMapping("/states")
     public ResponseEntity<Map<String, Object>> getAvailableStates() {
@@ -162,15 +162,16 @@ public class AuthController {
         
         Map<String, Object> response = new HashMap<>();
         try {
+            // TODO: In the future, discover states dynamically from database or configuration
+            // For now, indicate that state discovery is handled automatically
             response.put("success", true);
-            response.put("data", java.util.Arrays.asList(
-                "Karnataka", "TamilNadu", "AndhraPradesh", "Andhra Pradesh"
-            ));
+            response.put("message", "State discovery is handled automatically by mobile login");
+            response.put("discovery", true);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("❌ Error fetching available states", e);
+            log.error("❌ Error with states endpoint", e);
             response.put("success", false);
-            response.put("error", "Failed to fetch available states");
+            response.put("error", "States endpoint error");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
