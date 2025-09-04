@@ -259,10 +259,10 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     List<Object[]> getDailyCustomerCreationStats(@Param("fromDate") LocalDateTime fromDate);
 
     /**
-     * Get daily customer update statistics
+     * Get daily customer update statistics (daily increments only)
      */
     @Query("SELECT CAST(c.lastStatusUpdated AS DATE) as date, COUNT(c) as count " +
-           "FROM Customer c WHERE c.lastStatusUpdated >= :fromDate " +
+           "FROM Customer c WHERE CAST(c.lastStatusUpdated AS DATE) BETWEEN CAST(:fromDate AS DATE) AND CAST(GETDATE() AS DATE) " +
            "GROUP BY CAST(c.lastStatusUpdated AS DATE) ORDER BY CAST(c.lastStatusUpdated AS DATE) DESC")
     List<Object[]> getDailyCustomerUpdateStats(@Param("fromDate") LocalDateTime fromDate);
     
