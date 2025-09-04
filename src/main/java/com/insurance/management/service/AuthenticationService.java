@@ -214,17 +214,19 @@ public class AuthenticationService {
     // Private helper methods
     
     private String generateWebToken(User user) {
-        // Simple token format matching Node.js: base64(userId:username:timestamp)
+        // Simple token format matching Node.js: Bearer base64(userId:username:timestamp)
         String tokenData = String.format("%d:%s:%d", 
             user.getId(), user.getUsername(), System.currentTimeMillis());
-        return Base64.getEncoder().encodeToString(tokenData.getBytes(StandardCharsets.UTF_8));
+        String encoded = Base64.getEncoder().encodeToString(tokenData.getBytes(StandardCharsets.UTF_8));
+        return "Bearer " + encoded;  // Include Bearer prefix for consistency
     }
     
     private String generateMobileToken(User user, String state) {
-        // Mobile token format matching Node.js: base64(userId:username:state:timestamp)
+        // Mobile token format matching Node.js: Bearer base64(userId:username:state:timestamp)
         String tokenData = String.format("%d:%s:%s:%d", 
             user.getId(), user.getUsername(), state, System.currentTimeMillis());
-        return Base64.getEncoder().encodeToString(tokenData.getBytes(StandardCharsets.UTF_8));
+        String encoded = Base64.getEncoder().encodeToString(tokenData.getBytes(StandardCharsets.UTF_8));
+        return "Bearer " + encoded;  // Include Bearer prefix as expected by MobileTokenUtil
     }
     
     private LoginResponse.UserInfo buildUserInfo(User user) {
