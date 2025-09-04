@@ -181,6 +181,45 @@ public class MobileApiController {
     }
 
     /**
+     * GET /api/mobile/customers/submissions
+     * Get submitted/closed customers for the authenticated mobile user
+     * Shows customers that have been completed and moved to submissions
+     */
+    @GetMapping("/customers/submissions")
+    public ResponseEntity<CustomerDTO.PaginatedResponse> getSubmittedCustomers(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int size,
+            HttpServletRequest request) {
+        
+        log.info("📱 Mobile submissions request received");
+        
+        // Extract and validate token
+        User user = tokenUtil.validateTokenAndGetUser(request);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createErrorResponse("Invalid or expired authentication token"));
+        }
+        
+        log.info("📋 Fetching submitted customers for user: {} (ID: {})", 
+                user.getUsername(), user.getId());
+        
+        // Get closed/submitted customers for this user
+        Page<Customer> customersPage = customerService.getSubmittedCustomers(
+                user.getId(), page, size);
+        
+        // Get status breakdown for submitted customers
+        List<Object[]> statusBreakdownData = customerService.getStatusBreakdownForSubmittedCustomers(user.getId());
+        
+        // Convert to response format
+        CustomerDTO.PaginatedResponse response = buildSubmissionsResponse(
+                customersPage, user, statusBreakdownData);
+        
+        log.info("✅ Found {} submitted customers", customersPage.getContent().size());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * GET /api/mobile/customers/follow-up
      * Get customers due for follow-up based on reminder dates
      * Matches the Node.js implementation
@@ -305,6 +344,60 @@ public class MobileApiController {
         filterInfo.setIncludeClosed(false);
         filterInfo.setShowing("Follow-up customers due within " + daysAhead + " days");
         data.setFilterInfo(filterInfo);
+        
+        response.setData(data);
+        return response;
+    }
+    
+    private CustomerDTO.PaginatedResponse buildSubmissionsResponse(Page<Customer> customersPage, 
+                                                                 User user, 
+                                                                 List<Object[]> statusBreakdownData) {
+        CustomerDTO.PaginatedResponse response = new CustomerDTO.PaginatedResponse();
+        CustomerDTO.PaginatedResponse.CustomerData data = new CustomerDTO.PaginatedResponse.CustomerData();
+        
+        // Convert customers to response format
+        List<CustomerDTO.Response> customers = customersPage.getContent().stream()
+                .map(this::convertCustomerToResponse)
+                .collect(Collectors.toList());
+        data.setCustomers(customers);
+        
+        // Pagination info
+        CustomerDTO.PaginatedResponse.Pagination pagination = new CustomerDTO.PaginatedResponse.Pagination();
+        pagination.setCurrentPage(customersPage.getNumber() + 1); // Convert back to 1-based
+        pagination.setPageSize(customersPage.getSize());
+        pagination.setTotalCount(customersPage.getTotalElements());
+        pagination.setTotalPages(customersPage.getTotalPages());
+        data.setPagination(pagination);
+        
+        // User info
+        CustomerDTO.PaginatedResponse.UserInfo userInfo = new CustomerDTO.PaginatedResponse.UserInfo();
+        userInfo.setUsername(user.getUsername());
+        userInfo.setUserId(user.getId());
+        userInfo.setState(user.getLocationState());
+        data.setUserInfo(userInfo);
+        
+        // Filter info for submissions
+        CustomerDTO.PaginatedResponse.FilterInfo filterInfo = new CustomerDTO.PaginatedResponse.FilterInfo();
+        filterInfo.setIncludeClosed(true);
+        filterInfo.setShowing("My submitted customers");
+        data.setFilterInfo(filterInfo);
+        
+        // Status breakdown for submitted customers
+        List<CustomerDTO.PaginatedResponse.StatusBreakdown> statusBreakdown = statusBreakdownData.stream()
+                .map(row -> {
+                    CustomerDTO.PaginatedResponse.StatusBreakdown breakdown = new CustomerDTO.PaginatedResponse.StatusBreakdown();
+                    breakdown.setCustomerStatus((String) row[0]);
+                    breakdown.setIsClosed((Boolean) row[1]);
+                    breakdown.setCount(((Number) row[2]).longValue());
+                    return breakdown;
+                })
+                .collect(Collectors.toList());
+        data.setStatusBreakdown(statusBreakdown);
+        
+        // System info
+        CustomerDTO.PaginatedResponse.SystemInfo systemInfo = new CustomerDTO.PaginatedResponse.SystemInfo();
+        systemInfo.setStatusRules(new CustomerDTO.PaginatedResponse.SystemInfo.StatusRules());
+        data.setSystemInfo(systemInfo);
         
         response.setData(data);
         return response;

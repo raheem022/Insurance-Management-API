@@ -139,6 +139,26 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
            "GROUP BY c.customerStatusString, c.isClosed " +
            "ORDER BY c.customerStatusString")
     List<Object[]> getStatusBreakdownForUser(@Param("userId") Long userId);
+    
+    /**
+     * Find submitted/closed customers for a user
+     * These are customers that were previously assigned to the user but are now closed
+     * We need to track this through status_updated_by field since assignedTo is NULL for closed customers
+     */
+    @Query("SELECT c FROM Customer c WHERE c.statusUpdatedBy = :userId " +
+           "AND c.isClosed = true " +
+           "ORDER BY c.lastStatusUpdated DESC")
+    Page<Customer> findSubmittedCustomersForUser(@Param("userId") Long userId, Pageable pageable);
+    
+    /**
+     * Get status breakdown for submitted customers for a user
+     */
+    @Query("SELECT c.customerStatusString as status, c.isClosed as closed, COUNT(c) as count " +
+           "FROM Customer c WHERE c.statusUpdatedBy = :userId " +
+           "AND c.isClosed = true " +
+           "GROUP BY c.customerStatusString, c.isClosed " +
+           "ORDER BY c.customerStatusString")
+    List<Object[]> getStatusBreakdownForSubmittedCustomers(@Param("userId") Long userId);
 
     /**
      * Find customers by mobile number for search

@@ -62,6 +62,23 @@ public class CustomerService {
     public List<Object[]> getStatusBreakdownForUser(Long userId) {
         return customerRepository.getStatusBreakdownForUser(userId);
     }
+    
+    /**
+     * Get submitted/closed customers for a user
+     * These are customers that were previously assigned to the user but are now closed
+     */
+    public Page<Customer> getSubmittedCustomers(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        log.info("📋 Fetching submitted customers for user: {}", userId);
+        return customerRepository.findSubmittedCustomersForUser(userId, pageable);
+    }
+    
+    /**
+     * Get status breakdown for submitted customers for a user
+     */
+    public List<Object[]> getStatusBreakdownForSubmittedCustomers(Long userId) {
+        return customerRepository.getStatusBreakdownForSubmittedCustomers(userId);
+    }
 
     /**
      * Get customers due for follow-up
