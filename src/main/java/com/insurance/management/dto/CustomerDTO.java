@@ -378,7 +378,11 @@ public class CustomerDTO {
     @Data
     public static class AnalyticsData {
         private AnalyticsSummary summary;
+        
+        @JsonProperty("statusBreakdown")
         private StatusBreakdown statusBreakdown;
+        
+        @JsonProperty("dailyActivity")
         private java.util.List<DailyActivity> dailyActivity;
         
         @Data
