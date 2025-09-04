@@ -43,43 +43,25 @@ public class MetricsService {
             // Map the actual 5-status system to dashboard categories
             List<Object[]> rawStatusData = customerRepository.getCustomerStatusBreakdown();
             
-            // Convert real status data to dashboard format
-            Map<String, Integer> statusCounts = new HashMap<>();
-            statusCounts.put("COMPLETED", 0);    // active + renewed 
-            statusCounts.put("NOT_STARTED", 0);  // not_started
-            statusCounts.put("IN_PROGRESS", 0);  // not_reachable + follow_up + not_interested
+            // Show ALL 5 individual statuses - no grouping
+            List<Map<String, Object>> statusBreakdown = new ArrayList<>();
             
             for (Object[] row : rawStatusData) {
                 String status = (String) row[0];
                 Long count = ((Number) row[1]).longValue();
                 
-                // Map actual customer statuses to dashboard categories
-                switch (status) {
-                    case "active":
-                    case "renewed":
-                        statusCounts.put("COMPLETED", statusCounts.get("COMPLETED") + count.intValue());
-                        break;
-                    case "not_started":
-                        statusCounts.put("NOT_STARTED", statusCounts.get("NOT_STARTED") + count.intValue());
-                        break;
-                    case "not_reachable":
-                    case "follow_up":
-                    case "not_interested":
-                        statusCounts.put("IN_PROGRESS", statusCounts.get("IN_PROGRESS") + count.intValue());
-                        break;
-                    default:
-                        // Unknown status - count as not started
-                        statusCounts.put("NOT_STARTED", statusCounts.get("NOT_STARTED") + count.intValue());
-                        break;
-                }
+                // Add each status individually to the breakdown
+                Map<String, Object> statusEntry = new HashMap<>();
+                statusEntry.put("status", status.toUpperCase()); // Convert to uppercase for consistency
+                statusEntry.put("count", count.intValue());
+                statusBreakdown.add(statusEntry);
             }
             
-            // Build status breakdown response
-            List<Map<String, Object>> statusBreakdown = Arrays.asList(
-                Map.of("status", "COMPLETED", "count", statusCounts.get("COMPLETED")),
-                Map.of("status", "IN_PROGRESS", "count", statusCounts.get("IN_PROGRESS")),
-                Map.of("status", "NOT_STARTED", "count", statusCounts.get("NOT_STARTED"))
-            );
+            // Sort by count (descending) to show most common statuses first
+            statusBreakdown.sort((a, b) -> 
+                Integer.compare((Integer)b.get("count"), (Integer)a.get("count")));
+            
+            log.info("📊 Status breakdown: {} individual statuses found", statusBreakdown.size());
             
             // Get states summary
             List<Map<String, Object>> statesSummary = getStatesSummary();
