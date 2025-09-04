@@ -1,5 +1,6 @@
 package com.insurance.management.service;
 
+import com.insurance.management.dto.CustomerDTO;
 import com.insurance.management.entity.Customer;
 import com.insurance.management.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
