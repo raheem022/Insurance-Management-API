@@ -156,16 +156,8 @@ public class MetricsService {
             LocalDateTime fromDate = now.minusDays(daysToFetch);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             
-            // Get real customer creation data from database
-            List<Object[]> creationStats = customerRepository.getDailyCustomerCreationStats(fromDate);
-            Map<String, Long> creationByDate = new HashMap<>();
-            for (Object[] row : creationStats) {
-                String dateStr = row[0].toString();
-                Long count = ((Number) row[1]).longValue();
-                creationByDate.put(dateStr, count);
-            }
-            
             // Get real customer update/completion data from database 
+            // Skip customer creation data - we only want work activity for Daily Progress Trend
             List<Object[]> updateStats = customerRepository.getDailyCustomerUpdateStats(fromDate);
             Map<String, Long> updatesByDate = new HashMap<>();
             for (Object[] row : updateStats) {
@@ -181,26 +173,18 @@ public class MetricsService {
                 LocalDateTime date = now.minusDays(i);
                 String dateStr = date.format(formatter);
                 
-                // Real data from database queries
-                long newRegistrations = creationByDate.getOrDefault(dateStr, 0L);
+                // Real data from database queries - only work activity
                 long dailyUpdates = updatesByDate.getOrDefault(dateStr, 0L);
                 
-                // Calculate completion metrics based on real status changes
-                // After reset, these should all be 0 since no activity occurred
-                long completed = 0;
-                long inProgress = 0;
-                
-                // Only calculate if there were actual updates
-                if (dailyUpdates > 0) {
-                    // Query for actual completed customers on this date
-                    // This is simplified - you can enhance with more specific queries
-                    completed = Math.round(dailyUpdates * 0.7);
-                    inProgress = Math.round(dailyUpdates * 0.3);
-                }
+                // Use ONLY real data from database - no calculations or math
+                // dailyUpdates contains actual customer status changes from database
+                // For now, we'll treat all updates as "completed" since that's the most accurate
+                // You can enhance this later with specific status-based queries
+                long completed = dailyUpdates;  // Real status updates from database
+                long inProgress = 0;             // Set to 0 - can add specific query later if needed
                 
                 Map<String, Object> dayData = new HashMap<>();
                 dayData.put("date", dateStr);
-                dayData.put("count", newRegistrations);     // New customer registrations
                 dayData.put("completed", completed);        // Customers completed on this day
                 dayData.put("in_progress", inProgress);     // Customers marked in progress
                 
@@ -303,14 +287,22 @@ public class MetricsService {
                     List<Customer> customers = entry.getValue();
                     int total = customers.size();
                     
+                    // Get REAL data from database - no fake calculations
+                    long completedCount = customers.stream()
+                        .mapToLong(c -> (c.getIsClosed() != null && c.getIsClosed()) ? 1 : 0).sum();
+                    long assignedCount = customers.stream()
+                        .mapToLong(c -> (c.getAssignedTo() != null) ? 1 : 0).sum();
+                    long unassignedCount = total - assignedCount;
+                    int completionPercentage = total > 0 ? (int)((completedCount * 100) / total) : 0;
+                    
                     Map<String, Object> stateData = new HashMap<>();
                     stateData.put("state", state);
                     stateData.put("totalCustomers", total);
-                    stateData.put("completedCount", Math.max(1, (int)(total * 0.3))); // Sample completion rate
-                    stateData.put("inProgressCount", Math.max(1, (int)(total * 0.4))); // Sample in-progress rate
-                    stateData.put("unassignedCount", Math.max(0, (int)(total * 0.3))); // Sample unassigned rate
-                    stateData.put("activeUsers", Math.max(1, 5)); // Default active users
-                    stateData.put("completionPercentage", 30); // Default 30% completion
+                    stateData.put("completedCount", completedCount);     // REAL completed customers
+                    stateData.put("inProgressCount", assignedCount - completedCount); // REAL in-progress 
+                    stateData.put("unassignedCount", unassignedCount);   // REAL unassigned customers
+                    stateData.put("activeUsers", 0);  // TODO: Add real query for active users per state
+                    stateData.put("completionPercentage", completionPercentage); // REAL completion %
                     
                     return stateData;
                 })
@@ -334,8 +326,12 @@ public class MetricsService {
             
             return topUsers.stream()
                 .map(user -> {
-                    // Get assigned customer count (simplified - in production use proper joins)
+                    // Get REAL data from database - no fake calculations
                     long assignedCount = customerRepository.countByAssignedTo(user.getId());
+                    
+                    // TODO: Add real queries for completed count and today's updates
+                    long completedCount = 0; // For now - can add specific query later
+                    long todayUpdatedCount = 0; // For now - can add specific query later
                     
                     Map<String, Object> userData = new HashMap<>();
                     userData.put("username", user.getUsername());
@@ -348,9 +344,9 @@ public class MetricsService {
                         userData.put("fullName", user.getUsername());
                     }
                     userData.put("locationState", user.getLocationState() != null ? user.getLocationState() : "");
-                    userData.put("assignedCount", assignedCount);
-                    userData.put("completedCount", Math.max(0, (long)(assignedCount * 0.7))); // Sample completion
-                    userData.put("todayUpdatedCount", Math.max(0, (long)(assignedCount * 0.1))); // Sample today's updates
+                    userData.put("assignedCount", assignedCount);      // REAL assigned count
+                    userData.put("completedCount", completedCount);    // REAL completed count (0 for now)
+                    userData.put("todayUpdatedCount", todayUpdatedCount); // REAL today's updates (0 for now)
                     
                     return userData;
                 })
