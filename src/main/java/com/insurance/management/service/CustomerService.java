@@ -358,4 +358,83 @@ public class CustomerService {
         LocalDateTime fromDate = LocalDateTime.now().minusDays(days);
         return customerRepository.getDailyCustomerUpdateStats(fromDate);
     }
+    
+    /**
+     * Get user analytics data for mobile app
+     * Returns summary statistics and status breakdown
+     */
+    public CustomerDTO.AnalyticsData getUserAnalytics(Long userId) {
+        CustomerDTO.AnalyticsData analyticsData = new CustomerDTO.AnalyticsData();
+        
+        // Get summary statistics
+        CustomerDTO.AnalyticsData.AnalyticsSummary summary = new CustomerDTO.AnalyticsData.AnalyticsSummary();
+        
+        // Calculate time-based counts
+        LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime weekStart = today.minusDays(7);
+        LocalDateTime monthStart = today.minusDays(30);
+        
+        summary.setTodayCount((int) customerRepository.countCustomersUpdatedByUserSince(userId, today));
+        summary.setWeekCount((int) customerRepository.countCustomersUpdatedByUserSince(userId, weekStart));
+        summary.setMonthCount((int) customerRepository.countCustomersUpdatedByUserSince(userId, monthStart));
+        
+        // Get total assigned and completed counts
+        summary.setTotalAssigned((int) customerRepository.countByAssignedTo(userId));
+        summary.setCompletedCount((int) customerRepository.countClosedCustomersForUser(userId));
+        
+        // Calculate completion rate
+        double completionRate = summary.getTotalAssigned() > 0 ? 
+            (double) summary.getCompletedCount() / summary.getTotalAssigned() * 100 : 0;
+        summary.setCompletionRate(completionRate);
+        
+        analyticsData.setSummary(summary);
+        
+        // Get status breakdown
+        List<Object[]> statusBreakdownData = getStatusBreakdownForUser(userId);
+        CustomerDTO.AnalyticsData.StatusBreakdown breakdown = new CustomerDTO.AnalyticsData.StatusBreakdown();
+        
+        // Process status breakdown data
+        for (Object[] row : statusBreakdownData) {
+            String status = (String) row[0];
+            Long count = ((Number) row[2]).longValue();
+            
+            switch (status.toLowerCase()) {
+                case "active":
+                    breakdown.setActive(count.intValue());
+                    break;
+                case "renewed":
+                    breakdown.setRenewed(count.intValue());
+                    break;
+                case "not_interested":
+                    breakdown.setNotInterested(count.intValue());
+                    break;
+                case "not_reachable":
+                    breakdown.setNotReachable(count.intValue());
+                    break;
+                case "follow_up":
+                    breakdown.setFollowUp(count.intValue());
+                    break;
+            }
+        }
+        
+        analyticsData.setStatusBreakdown(breakdown);
+        
+        // Get daily activity for the last 7 days
+        java.util.List<CustomerDTO.AnalyticsData.DailyActivity> dailyActivity = new java.util.ArrayList<>();
+        List<Object[]> dailyStats = customerRepository.getDailyCustomerUpdateStatsForUser(userId, weekStart);
+        
+        for (Object[] row : dailyStats) {
+            CustomerDTO.AnalyticsData.DailyActivity activity = new CustomerDTO.AnalyticsData.DailyActivity();
+            activity.setDate(row[0].toString());
+            activity.setCount(((Number) row[1]).intValue());
+            dailyActivity.add(activity);
+        }
+        
+        analyticsData.setDailyActivity(dailyActivity);
+        
+        log.info("📊 Analytics data prepared for user: {} - Today: {}, Week: {}, Month: {}, Completion: {}%", 
+                userId, summary.getTodayCount(), summary.getWeekCount(), summary.getMonthCount(), completionRate);
+        
+        return analyticsData;
+    }
 }

@@ -361,6 +361,70 @@ public class CustomerDTO {
     }
 
     /**
+     * Analytics Response DTO
+     * For the mobile analytics endpoint: GET /api/mobile/analytics
+     */
+    @Data
+    public static class AnalyticsResponse {
+        private boolean success = true;
+        private String message;
+        private AnalyticsData data;
+    }
+    
+    /**
+     * Analytics Data DTO
+     * Contains user analytics summary and status breakdown
+     */
+    @Data
+    public static class AnalyticsData {
+        private AnalyticsSummary summary;
+        private StatusBreakdown statusBreakdown;
+        private java.util.List<DailyActivity> dailyActivity;
+        
+        @Data
+        public static class AnalyticsSummary {
+            @JsonProperty("today_count")
+            private int todayCount;
+            
+            @JsonProperty("week_count")
+            private int weekCount;
+            
+            @JsonProperty("month_count")
+            private int monthCount;
+            
+            @JsonProperty("total_assigned")
+            private int totalAssigned;
+            
+            @JsonProperty("completed_count")
+            private int completedCount;
+            
+            @JsonProperty("completion_rate")
+            private double completionRate;
+        }
+        
+        @Data
+        public static class StatusBreakdown {
+            private int active;
+            private int renewed;
+            
+            @JsonProperty("not_interested")
+            private int notInterested;
+            
+            @JsonProperty("not_reachable")
+            private int notReachable;
+            
+            @JsonProperty("follow_up")
+            private int followUp;
+        }
+        
+        @Data
+        public static class DailyActivity {
+            private String date;
+            private int count;
+        }
+    }
+
+    /**
      * Error Response DTO
      */
     @Data

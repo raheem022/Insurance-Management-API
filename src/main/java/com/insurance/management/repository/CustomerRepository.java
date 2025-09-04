@@ -292,4 +292,30 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      * Find customers by state and unassigned with pagination
      */
     Page<Customer> findByStateAndAssignedToIsNull(String state, Pageable pageable);
+    
+    // Analytics-related queries for mobile app
+    
+    /**
+     * Count customers updated by a specific user since a certain date
+     */
+    @Query("SELECT COUNT(c) FROM Customer c WHERE c.statusUpdatedBy = :userId " +
+           "AND c.lastStatusUpdated >= :since")
+    long countCustomersUpdatedByUserSince(@Param("userId") Long userId, @Param("since") LocalDateTime since);
+    
+    /**
+     * Count closed customers for a specific user (completed work)
+     */
+    @Query("SELECT COUNT(c) FROM Customer c WHERE c.statusUpdatedBy = :userId " +
+           "AND c.isClosed = true")
+    long countClosedCustomersForUser(@Param("userId") Long userId);
+    
+    /**
+     * Get daily customer update statistics for a specific user
+     */
+    @Query("SELECT DATE(c.lastStatusUpdated) as date, COUNT(c) as count " +
+           "FROM Customer c WHERE c.statusUpdatedBy = :userId " +
+           "AND c.lastStatusUpdated >= :fromDate " +
+           "GROUP BY DATE(c.lastStatusUpdated) " +
+           "ORDER BY DATE(c.lastStatusUpdated) DESC")
+    List<Object[]> getDailyCustomerUpdateStatsForUser(@Param("userId") Long userId, @Param("fromDate") LocalDateTime fromDate);
 }

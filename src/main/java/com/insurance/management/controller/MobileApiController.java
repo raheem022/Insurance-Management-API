@@ -220,6 +220,39 @@ public class MobileApiController {
     }
 
     /**
+     * GET /api/mobile/analytics
+     * Get user analytics including summary statistics and status breakdown
+     * New endpoint for mobile analytics section
+     */
+    @GetMapping("/analytics")
+    public ResponseEntity<CustomerDTO.AnalyticsResponse> getUserAnalytics(
+            HttpServletRequest request) {
+        
+        log.info("📊 Mobile analytics request received");
+        
+        // Extract and validate token
+        User user = tokenUtil.validateTokenAndGetUser(request);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createAnalyticsErrorResponse("Invalid or expired authentication token"));
+        }
+        
+        log.info("📊 Fetching analytics for user: {} (ID: {})", user.getUsername(), user.getId());
+        
+        // Get analytics data from customer service
+        CustomerDTO.AnalyticsData analyticsData = customerService.getUserAnalytics(user.getId());
+        
+        // Build response
+        CustomerDTO.AnalyticsResponse response = new CustomerDTO.AnalyticsResponse();
+        response.setData(analyticsData);
+        response.setSuccess(true);
+        
+        log.info("✅ Analytics data loaded successfully for user: {}", user.getUsername());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * GET /api/mobile/customers/follow-up
      * Get customers due for follow-up based on reminder dates
      * Matches the Node.js implementation
@@ -496,6 +529,13 @@ public class MobileApiController {
         CustomerDTO.IndividualSubmissionResponse response = new CustomerDTO.IndividualSubmissionResponse();
         response.setSuccess(false);
         response.setMessage("Failed to update customer: " + error);
+        return response;
+    }
+
+    private CustomerDTO.AnalyticsResponse createAnalyticsErrorResponse(String error) {
+        CustomerDTO.AnalyticsResponse response = new CustomerDTO.AnalyticsResponse();
+        response.setSuccess(false);
+        response.setMessage("Failed to load analytics: " + error);
         return response;
     }
 }
