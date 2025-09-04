@@ -313,11 +313,12 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     
     /**
      * Get daily customer update statistics for a specific user
+     * Converts UTC timestamps to IST timezone for proper daily grouping
      */
-    @Query("SELECT CAST(c.lastStatusUpdated AS DATE) as date, COUNT(c) as count " +
+    @Query("SELECT CAST(DATEADD(MINUTE, 330, c.lastStatusUpdated) AS DATE) as date, COUNT(c) as count " +
            "FROM Customer c WHERE c.statusUpdatedBy = :userId " +
            "AND c.lastStatusUpdated >= :fromDate " +
-           "GROUP BY CAST(c.lastStatusUpdated AS DATE) " +
-           "ORDER BY CAST(c.lastStatusUpdated AS DATE) DESC")
+           "GROUP BY CAST(DATEADD(MINUTE, 330, c.lastStatusUpdated) AS DATE) " +
+           "ORDER BY CAST(DATEADD(MINUTE, 330, c.lastStatusUpdated) AS DATE) DESC")
     List<Object[]> getDailyCustomerUpdateStatsForUser(@Param("userId") Long userId, @Param("fromDate") LocalDateTime fromDate);
 }
