@@ -370,15 +370,21 @@ public class CustomerService {
         // Get summary statistics
         CustomerDTO.AnalyticsData.AnalyticsSummary summary = new CustomerDTO.AnalyticsData.AnalyticsSummary();
         
-        // Calculate time-based counts using India Standard Time (IST)
+        // Calculate time-based counts using India Standard Time (IST) 
+        // but convert to UTC for database comparison since database stores UTC timestamps
         java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
-        LocalDateTime currentIstTime = LocalDateTime.now(istZone);
-        LocalDateTime today = currentIstTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime weekStart = today.minusDays(7);
-        LocalDateTime monthStart = today.minusDays(30);
+        java.time.ZoneId utcZone = java.time.ZoneId.of("UTC");
         
-        log.info("🕰️ Timezone Debug - Current IST: {}, Today start: {}, Week start: {}", 
-                currentIstTime, today, weekStart);
+        // Calculate IST times first
+        LocalDateTime currentIstTime = LocalDateTime.now(istZone);
+        LocalDateTime todayIst = currentIstTime.withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime weekStartIst = todayIst.minusDays(7);
+        LocalDateTime monthStartIst = todayIst.minusDays(30);
+        
+        // Convert IST times to UTC for database comparison
+        LocalDateTime today = todayIst.atZone(istZone).withZoneSameInstant(utcZone).toLocalDateTime();
+        LocalDateTime weekStart = weekStartIst.atZone(istZone).withZoneSameInstant(utcZone).toLocalDateTime();
+        LocalDateTime monthStart = monthStartIst.atZone(istZone).withZoneSameInstant(utcZone).toLocalDateTime();
         
         summary.setTodayCount((int) customerRepository.countCustomersUpdatedByUserSince(userId, today));
         summary.setWeekCount((int) customerRepository.countCustomersUpdatedByUserSince(userId, weekStart));
