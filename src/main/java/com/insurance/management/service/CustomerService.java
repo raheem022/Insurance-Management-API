@@ -370,8 +370,9 @@ public class CustomerService {
         // Get summary statistics
         CustomerDTO.AnalyticsData.AnalyticsSummary summary = new CustomerDTO.AnalyticsData.AnalyticsSummary();
         
-        // Calculate time-based counts
-        LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        // Calculate time-based counts using India Standard Time (IST)
+        java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
+        LocalDateTime today = LocalDateTime.now(istZone).withHour(0).withMinute(0).withSecond(0).withNano(0);
         LocalDateTime weekStart = today.minusDays(7);
         LocalDateTime monthStart = today.minusDays(30);
         
