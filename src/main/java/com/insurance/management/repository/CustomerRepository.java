@@ -132,10 +132,12 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
             @Param("assignedAt") LocalDateTime assignedAt);
 
     /**
-     * Get status breakdown for a user's assigned customers
+     * Get status breakdown for all customers updated by a user (for analytics)
+     * This includes both currently assigned and previously submitted customers
      */
     @Query("SELECT c.customerStatusString as status, c.isClosed as closed, COUNT(c) as count " +
-           "FROM Customer c WHERE c.assignedTo = :userId " +
+           "FROM Customer c WHERE c.statusUpdatedBy = :userId " +
+           "AND c.customerStatusString IS NOT NULL " +
            "GROUP BY c.customerStatusString, c.isClosed " +
            "ORDER BY c.customerStatusString")
     List<Object[]> getStatusBreakdownForUser(@Param("userId") Long userId);
