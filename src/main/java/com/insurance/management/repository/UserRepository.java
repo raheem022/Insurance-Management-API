@@ -234,16 +234,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /**
      * Get daily user registration statistics
      */
-    @Query("SELECT DATE(u.createdAt) as date, COUNT(u) as count " +
+    @Query("SELECT CAST(u.createdAt AS DATE) as date, COUNT(u) as count " +
            "FROM User u WHERE u.createdAt >= :fromDate " +
-           "GROUP BY DATE(u.createdAt) ORDER BY DATE(u.createdAt) DESC")
+           "GROUP BY CAST(u.createdAt AS DATE) ORDER BY CAST(u.createdAt AS DATE) DESC")
     List<Object[]> getDailyUserRegistrationStats(@Param("fromDate") LocalDateTime fromDate);
 
     /**
      * Get daily user login statistics
      */
-    @Query("SELECT DATE(u.lastLoginAt) as date, COUNT(u) as count " +
+    @Query("SELECT CAST(u.lastLoginAt AS DATE) as date, COUNT(u) as count " +
            "FROM User u WHERE u.lastLoginAt >= :fromDate " +
-           "GROUP BY DATE(u.lastLoginAt) ORDER BY DATE(u.lastLoginAt) DESC")
+           "GROUP BY CAST(u.lastLoginAt AS DATE) ORDER BY CAST(u.lastLoginAt AS DATE) DESC")
     List<Object[]> getDailyUserLoginStats(@Param("fromDate") LocalDateTime fromDate);
 }

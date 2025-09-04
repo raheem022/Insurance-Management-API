@@ -251,17 +251,17 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     /**
      * Get daily customer creation statistics
      */
-    @Query("SELECT DATE(c.createdAt) as date, COUNT(c) as count " +
+    @Query("SELECT CAST(c.createdAt AS DATE) as date, COUNT(c) as count " +
            "FROM Customer c WHERE c.createdAt >= :fromDate " +
-           "GROUP BY DATE(c.createdAt) ORDER BY DATE(c.createdAt) DESC")
+           "GROUP BY CAST(c.createdAt AS DATE) ORDER BY CAST(c.createdAt AS DATE) DESC")
     List<Object[]> getDailyCustomerCreationStats(@Param("fromDate") LocalDateTime fromDate);
 
     /**
      * Get daily customer update statistics
      */
-    @Query("SELECT DATE(c.lastStatusUpdated) as date, COUNT(c) as count " +
+    @Query("SELECT CAST(c.lastStatusUpdated AS DATE) as date, COUNT(c) as count " +
            "FROM Customer c WHERE c.lastStatusUpdated >= :fromDate " +
-           "GROUP BY DATE(c.lastStatusUpdated) ORDER BY DATE(c.lastStatusUpdated) DESC")
+           "GROUP BY CAST(c.lastStatusUpdated AS DATE) ORDER BY CAST(c.lastStatusUpdated AS DATE) DESC")
     List<Object[]> getDailyCustomerUpdateStats(@Param("fromDate") LocalDateTime fromDate);
     
     /**
@@ -312,10 +312,10 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     /**
      * Get daily customer update statistics for a specific user
      */
-    @Query("SELECT DATE(c.lastStatusUpdated) as date, COUNT(c) as count " +
+    @Query("SELECT CAST(c.lastStatusUpdated AS DATE) as date, COUNT(c) as count " +
            "FROM Customer c WHERE c.statusUpdatedBy = :userId " +
            "AND c.lastStatusUpdated >= :fromDate " +
-           "GROUP BY DATE(c.lastStatusUpdated) " +
-           "ORDER BY DATE(c.lastStatusUpdated) DESC")
+           "GROUP BY CAST(c.lastStatusUpdated AS DATE) " +
+           "ORDER BY CAST(c.lastStatusUpdated AS DATE) DESC")
     List<Object[]> getDailyCustomerUpdateStatsForUser(@Param("userId") Long userId, @Param("fromDate") LocalDateTime fromDate);
 }
