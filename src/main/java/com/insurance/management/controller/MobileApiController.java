@@ -242,6 +242,14 @@ public class MobileApiController {
         // Get analytics data from customer service
         CustomerDTO.AnalyticsData analyticsData = customerService.getUserAnalytics(user.getId());
         
+        // Log the status breakdown values being sent to mobile app
+        if (analyticsData != null && analyticsData.getStatusBreakdown() != null) {
+            CustomerDTO.AnalyticsData.StatusBreakdown breakdown = analyticsData.getStatusBreakdown();
+            log.info("📱 Sending status breakdown to mobile app - Active: {}, Renewed: {}, NotInterested: {}, NotReachable: {}, FollowUp: {}", 
+                    breakdown.getActive(), breakdown.getRenewed(), breakdown.getNotInterested(), 
+                    breakdown.getNotReachable(), breakdown.getFollowUp());
+        }
+        
         // Build response
         CustomerDTO.AnalyticsResponse response = new CustomerDTO.AnalyticsResponse();
         response.setData(analyticsData);
